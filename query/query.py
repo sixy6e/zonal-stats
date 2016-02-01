@@ -79,7 +79,7 @@ def get_cells():
     return cells
 
 
-def query_cells(cell_list, satellites, min_date, max_date, dataset_type,
+def query_cells(cell_list, satellites, min_date, max_date, dataset_types,
                 output_dir):
     """
     
@@ -90,13 +90,9 @@ def query_cells(cell_list, satellites, min_date, max_date, dataset_type,
         x_cell = [int(cell[0])]
         y_cell = [int(cell[1])]
         tiles = list_tiles_as_list(x=x_cell, y=y_cell, acq_min=min_date,
-                                   acq_max=max_date, datasets=dataset_type,
-                                   satellites=satellites,
-                                   database=config.get_db_database(),
-                                   user=config.get_db_username(),
-                                   password=config.get_db_password(),
-                                   host=config.get_db_host(),
-                                   port=config.get_db_port())
+                                   acq_max=max_date,
+                                   dataset_types=dataset_types,
+                                   satellites=satellites)
         out_dir = pjoin(output_dir, '{}_{}'.format(cell[0], cell[1]))
         out_fname = pjoin(out_dir, base_out_fname)
         with open(out_fname, 'w') as outf:
