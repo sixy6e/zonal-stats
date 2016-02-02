@@ -7,6 +7,7 @@ import rasterio
 
 from datacube.api.model import DatasetType
 from datacube.api.utils import get_dataset_data_with_pq
+from datacube.api.utils import PqaMask
 from image_processing.segmentation import Segments
 from idl_functions import histogram
 
@@ -55,6 +56,13 @@ def zonal_stats(dataset, rasterised_fname, dataset_type):
     bands = ds.bands
 
     no_data = -999
+
+    # TODO have a user choice at the config level to determine which PQ flags
+    # to apply
+    # pq_flags = [PqaMask.PQ_MASK_CLEAR] # The default will msk everything
+    pq_flags = [PqaMask.PQ_MASK_SATURATION,
+                PqaMask.PQ_MASK_CONTIGUITY,
+                PqaMask.PQ_MASK_CLOUD] # cloud and cloud shadow
 
     for band in bands:
         # When the api has a release of get_pq_mask this will have to do
