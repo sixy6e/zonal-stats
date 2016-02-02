@@ -1,15 +1,12 @@
 #!/usr/bin/env python
 
 import numpy
-
-import gdal
 import pandas
+import rasterio
 
 
 from datacube.api.model import DatasetType
 from datacube.api.utils import get_dataset_data_with_pq
-from eotools.drivers.stacked_dataset import StackedDataset
-from eotools.geobox import GriddedGeoBox
 from image_processing.segmentation import Segments
 from idl_functions import histogram
 
@@ -41,8 +38,8 @@ def zonal_stats(dataset, rasterised_fname, dataset_type):
     df = pandas.DataFrame(columns=headings, dtype=numpy.float)
 
     # Read the rasterised image
-    sd = StackedDataset(rasterised_fname)
-    img = sd.read_raster_band()
+    with rasterio.open(rasterised_fname) as src:
+        img = src.read(1)
 
     # Initialise the segment visitor
     seg_vis = Segments(img)
