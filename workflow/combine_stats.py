@@ -13,7 +13,6 @@ import ogr
 from eotools.vector import retrieve_attribute_table
 
 CONFIG = luigi.configuration.get_config()
-CONFIG.add_config_path(pjoin(dirname(__file__), 'config.cfg'))
 
 
 def combine_all_cells():
@@ -103,7 +102,7 @@ def combine_all_cells():
         df['Mean'] = df['Sum'] / df['Observed_Count']
         df['Variance'] = ((df['Sum_of_Squares'] - (df['Observed_Count'] *
                                                    df['Mean']**2)) / 
-                         (df['Observed_Count'] - 1))
+                          (df['Observed_Count'] - 1))
         df['StdDev'] = numpy.sqrt(df['Variance'].values)
 
         # Write the group to disk
@@ -226,5 +225,19 @@ def combine_all_cells_distribution():
     os.remove(tmp2_fname)
 
 if __name__ == '__main__':
-    # combine_all_cells()
-    combine_all_cells_distribution()
+    desc = ("Combines the all the statistical outputs from each cell "
+            "and merges the results when required.")
+    parser = argparse.ArgumentParser(description=desc)
+    parser.add_argument('--cfg', required=True,
+                        help="The config file used to drive the workflow.")
+    parser.add_argument('--distribution', action='store_true',
+                        help=("If set, then stats will be combined on the"
+                              "assumption that the results are for a"
+                              "class distribution"))
+    parsed_args = parser.parse_args()
+    CONFIG.add_config_path(parsed_args.cfg)
+
+    if parsed_args.distribution:
+        combine_all_cells_distribution()
+    else:
+        combine_all_cells()

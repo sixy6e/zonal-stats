@@ -1,25 +1,23 @@
 #!/usr/bin/env python
 
-import luigi
 
 from datetime import date
 import os
-from os.path import join as pjoin, exists, dirname
+from os.path import join as pjoin, exists
 import cPickle as pickle
 import subprocess
 import logging
+import argparse
+import luigi
 
 import ogr
 
 from datacube.api.query import list_tiles_as_list
 from datacube.api.model import DatasetType, Satellite, BANDS
-from datacube.config import Config
 from eotools.vector import spatial_intersection
 
-import pdb
 
 CONFIG = luigi.configuration.get_config()
-CONFIG.add_config_path(pjoin(dirname(__file__), 'config.cfg'))
 
 PBS_DSH = (
 """#!/bin/bash
@@ -35,7 +33,7 @@ NNODES={nnodes}
 
 for i in $(seq 1 $NNODES); do
    pbsdsh -n $((16 *$i)) -- bash -l -c "{modules} PBS_NNODES=$NNODES PBS_VNODENUM=$i python {pyfile} \
-   --tile $[$i - 1]" &
+   --tile $[$i - 1]" --cfg {cfg_file} &
 done;
 wait
 """)
@@ -84,7 +82,6 @@ def query_cells(cell_list, satellites, min_date, max_date, dataset_types,
     """
     
     """
-    config = Config()
     base_out_fname = CONFIG.get('outputs', 'query_filename')
     for cell in cell_list:
         x_cell = [int(cell[0])]
@@ -117,6 +114,13 @@ def create_tiles(array_size, tile_size=25):
 
 
 if __name__ == '__main__':
+    desc = "Initialises the datacube query and saves the output."
+    parser = argparse.ArgumentParser(description=desc)
+    hlp = "The config file used to drive the workflow."
+    parser.add_argument('--cfg', required=True, help=hlp)
+    args = parser.parse_args()
+    CONFIG.add_config_path(args.cfg)
+
     # Create the output directory
     out_dir = CONFIG.get('work', 'output_directory')
     if not exists(out_dir):
@@ -185,7 +189,9 @@ if __name__ == '__main__':
     queue = CONFIG.get('pbs', 'queue')
     walltime = CONFIG.get('pbs', 'walltime')
     email = CONFIG.get('pbs', 'email')
-    py_file = pjoin(dirname(__file__), 'workflow.py')
+    #py_file = pjoin(dirname(__file__), 'workflow.py')
+    py_file = 'workflow.py'
+    cfg_file = args.cfg
     pbs_job = PBS_DSH.format(project=project, queue=queue,
                              walltime=walltime, ncpus=ncpus, mem=mem,
                              email=email, nnodes=nnodes,

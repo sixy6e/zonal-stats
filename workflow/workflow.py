@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
-import luigi
 
 import os
 from os.path import join as pjoin, exists, dirname
 import cPickle as pickle
 import glob
-import argparse
 import logging
+import argparse
+import luigi
 
 import pandas
 import rasterio
@@ -18,7 +18,6 @@ from image_processing.segmentation import rasterise_vector
 
 
 CONFIG = luigi.configuration.get_config()
-CONFIG.add_config_path(pjoin(dirname(__file__), 'config.cfg'))
 
 
 class RasteriseTask(luigi.Task):
@@ -243,9 +242,12 @@ if __name__ == '__main__':
            "(Needs to have been previously computed to a file named tiles.pkl")
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--tile', type=int, help=hlp)
+    parser.add_argument('--cfg', required=True,
+                        help="The config file used to drive the workflow.")
 
     parsed_args = parser.parse_args()
     tile_idx = parsed_args.tile
+    CONFIG.add_config_path(parsed_args.cfg)
 
 
     # setup logging
