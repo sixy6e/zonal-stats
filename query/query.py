@@ -33,7 +33,7 @@ NNODES={nnodes}
 
 for i in $(seq 1 $NNODES); do
    pbsdsh -n $((16 *$i)) -- bash -l -c "{modules} PBS_NNODES=$NNODES PBS_VNODENUM=$i python {pyfile} \
-   --tile $[$i - 1]" --cfg {cfg_file} &
+   --tile $[$i - 1]" --cfg {cfgfile} &
 done;
 wait
 """)
@@ -145,7 +145,7 @@ if __name__ == '__main__':
 
     # Define the fractional cover dataset
     # TODO have this defined through the config.cfg
-    fc_ds_type = DatasetType.FC25
+    fc_ds_type = [DatasetType.FC25, DatasetType.PQ25]
 
     # Get the satellites we wish to query
     satellites = CONFIG.get('work', 'satellites')
@@ -195,7 +195,8 @@ if __name__ == '__main__':
     pbs_job = PBS_DSH.format(project=project, queue=queue,
                              walltime=walltime, ncpus=ncpus, mem=mem,
                              email=email, nnodes=nnodes,
-                             modules=modules, pyfile=py_file)
+                             modules=modules, pyfile=py_file,
+                             cfgfile=cfg_file)
 
     # Out put the shell script to disk
     pbs_fname = pjoin(out_dir, CONFIG.get('outputs', 'pbs_filename'))
