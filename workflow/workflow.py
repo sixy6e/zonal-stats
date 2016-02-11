@@ -63,10 +63,11 @@ class RasteriseTask(luigi.Task):
                   'crs': crs,
                   'transform': transform,
                   'dtype': res.dtype.name,
+                  'driver': 'GTiff',
                   'nodata': 0}
 
         with rasterio.open(out_fname, 'w', **kwargs) as src:
-            src.write(1, res)
+            src.write(res, 1)
 
         # We could just set the image as the Luigi completion target...
         with self.output().open('w') as outf:

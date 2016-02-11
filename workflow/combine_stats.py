@@ -44,7 +44,11 @@ def combine_all_cells():
         cell_stats_fname = pjoin(cell_dir, combined_cell_stats_fname)
 
         # Open the current cells WC result file
-        store = pandas.HDFStore(cell_stats_fname, 'r')
+        try:
+            store = pandas.HDFStore(cell_stats_fname, 'r')
+        except IOError:
+            print "No stats result for cell: {}".format(cell)
+            continue
 
         if '/data' in store.keys():
             # We have data to retrieve
@@ -116,10 +120,8 @@ def combine_all_cells():
     combined_store[metadata_group] = metadata
 
     # Add the vector attribute table
-    vec_ds = ogr.Open(vector_fname)
-    lyr = vec_ds.GetLayer()
-    attribute_table = retrieve_attribute_table(lyr)
-    combined_store['attribute_table'] = attribute_table
+    attribute_table = retrieve_attribute_table(vector_fname)
+    combined_store['attribute_table'] = pandas.DataFrame(attribute_table)
 
     # Save and close the file
     combined_store.close()

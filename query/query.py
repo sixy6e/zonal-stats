@@ -32,7 +32,7 @@ PBS_DSH = (
 NNODES={nnodes}
 
 for i in $(seq 1 $NNODES); do
-   pbsdsh -n $((16 *$i)) -- bash -l -c "{modules} PBS_NNODES=$NNODES PBS_VNODENUM=$i python {pyfile} \
+   pbsdsh -n $((16 *$i)) -- bash -l -c "{modules} PBS_NNODES=$NNODES PBS_VNODENUM=$i {pyfile} \
    --tile $[$i - 1]" --cfg {cfgfile} &
 done;
 wait

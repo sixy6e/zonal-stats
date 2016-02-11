@@ -75,7 +75,7 @@ def zonal_stats(dataset, rasterised_fname, dataset_type):
 
         # Loop over each segment and get the data.
         # In other instances we may just need the locations
-        for seg_id in seg_vis.segment_ids:
+        for seg_id in seg_vis.ids:
             data = seg_vis.data(ds_data, segment_id=seg_id)
 
             # dimensions of the data which will be 1D
@@ -137,7 +137,7 @@ def zonal_class_distribution(classified_image, zonal_image, class_ids=None):
     cname_format = 'Class_{}'
 
     # Retrieve the class distributions for each segment/zone
-    for zid in seg_vis.segment_ids:
+    for zid in seg_vis.ids:
         data = seg_vis.data(classified_image, segment_id=zid)
 
         # Skip invalid segments
