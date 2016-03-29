@@ -186,7 +186,8 @@ if __name__ == '__main__':
     queue = CONFIG.get('pbs', 'queue')
     walltime = CONFIG.get('pbs', 'walltime')
     email = CONFIG.get('pbs', 'email')
-    py_file = pjoin(dirname(abspath(__file__)), 'classifier_workflow.py')
+    # py_file = pjoin(dirname(abspath(__file__)), 'classifier_workflow.py')
+    py_file = CONFIG.get('work', 'query_file')
     pbs_job = PBS_DSH.format(project=project, queue=queue,
                              walltime=walltime, ncpus=ncpus, mem=mem,
                              email=email, nnodes=nnodes,
