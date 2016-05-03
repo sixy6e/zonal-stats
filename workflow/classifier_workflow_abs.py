@@ -13,14 +13,13 @@ import pandas
 import rasterio
 
 from datacube.api.model import DatasetType
-from classifier import classifier
+from zonal_stats.classifier import classify_abs
 from zonal_stats import zonal_stats
 from zonal_stats import zonal_class_distribution
 from image_processing.segmentation import rasterise_vector
 
 
 CONFIG = luigi.configuration.get_config()
-CONFIG.add_config_path(pjoin(dirname(__file__), 'config.cfg'))
 
 
 class RasteriseTask(luigi.Task):
@@ -66,10 +65,11 @@ class RasteriseTask(luigi.Task):
                   'crs': crs,
                   'transform': transform,
                   'dtype': res.dtype.name,
+                  'driver': 'GTiff',
                   'nodata': 0}
 
         with rasterio.open(out_fname, 'w', **kwargs) as src:
-            src.write(1, res)
+            src.write(res, 1)
 
         # We could just set the image as the Luigi completion target...
         with self.output().open('w') as outf:
@@ -122,36 +122,45 @@ class ClassifierStatsTask(luigi.Task):
 
         # blank dataframe to join results into
         result = pandas.DataFrame()
+        merge = False
+        merge_on = ['SID']
 
-        for key in classified
+        for key in classified:
             bname = key.name
             classified_img = classified[key]
             res = zonal_class_distribution(classified_img, zones_img,
                                            class_ids=class_ids)
 
             # change column names
-            columns = {'0': 'no_data_{}'.format(bname),
-                       '1': 'decile_1_{}'.format(bname),
-                       '2': 'decile_2_{}'.format(bname),
-                       '3': 'decile_3_{}'.format(bname),
-                       '4': 'decile_4_{}'.format(bname),
-                       '5': 'decile_5_{}'.format(bname),
-                       '6': 'decile_6_{}'.format(bname),
-                       '7': 'decile_7_{}'.format(bname),
-                       '8': 'decile_8_{}'.format(bname),
-                       '9': 'decile_9_{}'.format(bname),
-                       '10': 'decile_10_{}'.format(bname),
-                       '11': 'decile_11_{}'.format(bname)}
+            columns = {'Class_0': 'no_data_{}'.format(bname),
+                       'Class_1': 'decile_1_{}'.format(bname),
+                       'Class_2': 'decile_2_{}'.format(bname),
+                       'Class_3': 'decile_3_{}'.format(bname),
+                       'Class_4': 'decile_4_{}'.format(bname),
+                       'Class_5': 'decile_5_{}'.format(bname),
+                       'Class_6': 'decile_6_{}'.format(bname),
+                       'Class_7': 'decile_7_{}'.format(bname),
+                       'Class_8': 'decile_8_{}'.format(bname),
+                       'Class_9': 'decile_9_{}'.format(bname),
+                       'Class_10': 'decile_10_{}'.format(bname),
+                       'Class_11': 'decile_11_{}'.format(bname)}
 
             res.rename(columns=columns, inplace=True)
 
-            # Set the timestamp
-            res['Timestamp'] = tiles[0].start_datetime # Do we need?
-            res['Year'] = tiles[0].start_datetime.year
-            res['Month'] = tiles[0].start_datetime.month
-
             # merge new columns into the existing dataframe
-            result = pandas.concat([result, res], axis=1)
+            # result = pandas.concat([result, res], axis=1)
+            if merge:
+                # merge new columns into the existing dataframe
+                res.drop('PixelCount', axis=1, inplace=True)
+                result = pandas.merge(result, res, on=merge_on, how='outer')
+            else:
+                result = res
+                merge = True
+
+        # Set the timestamp
+        # result['Timestamp'] = tiles[0].start_datetime # Do we need?
+        result['Year'] = tiles[0].start_datetime.year
+        result['Month'] = tiles[0].start_datetime.month
 
         # Open the output hdf5 file
         store = pandas.HDFStore(self.output().path)
@@ -202,7 +211,7 @@ class CellStatsTask(luigi.Task):
         targets = []
         timestamps = []
         t_idx = []
-        for i, tile in enumerate(tiles):
+        for i, tile in enumerate(ds_list):
             timestamps.append(tile.start_datetime)
             t_idx.append(i)
         df = pandas.DataFrame({'timestamp': timestamps, 'tile_idx': t_idx})
@@ -318,9 +327,12 @@ if __name__ == '__main__':
            "(Needs to have been previously computed to a file named tiles.pkl")
     parser = argparse.ArgumentParser(description=desc)
     parser.add_argument('--tile', type=int, help=hlp)
+    parser.add_argument('--cfg', required=True,
+                        help="The config file used to drive the workflow.")
 
     parsed_args = parser.parse_args()
     tile_idx = parsed_args.tile
+    CONFIG.add_config_path(parsed_args.cfg)
 
 
     # setup logging

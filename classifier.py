@@ -152,7 +152,7 @@ def classify_abs(tiles):
                                 x=xs, y=ys, x_size=xsize, y_size=ysize)
 
             # check for water
-            if DatasetType.WATER in ds.datasets:
+            if DatasetType.WATER in tile.datasets:
                 mask = get_mask_wofs(tile.datasets[DatasetType.WATER],
                                      x=xs, y=ys, x_size=xsize, y_size=ysize,
                                      mask=mask)
@@ -175,9 +175,9 @@ def classify_abs(tiles):
                 ri = h['ri']
 
                 bins = h['loc'] / 1000
-                for i in bins:
+                for i in range(bins.shape[0]):
                     if hist[i] == 0:
                         continue
-                    subs[ri[ri[i]:ri[i+1]]] = i + 1 # apply in place
+                    subs[ri[ri[i]:ri[i+1]]] = bins[i] + 1 # apply in place
 
     return classified

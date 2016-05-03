@@ -199,7 +199,8 @@ def combine_all_cells_distribution():
     # classification headings as opposed to the numeric code
     # without begin specific like we did for WOfS.
     new_headings = ['FID' if x == 'SID' else x for x in headings]
-    items = ['Timestamp', 'SID']
+    # items = ['Timestamp', 'SID']
+    items = ['SID', 'Year', 'Month']
 
     # Define the output file
     out_fname = pjoin(base_out_dir, base_out_fname)
@@ -209,6 +210,9 @@ def combine_all_cells_distribution():
     tmp2_store = pandas.HDFStore(tmp2_fname)
     for key in tmp2_store.keys():
         df = tmp2_store[key].groupby(items, as_index=False).sum()
+
+        # Account for the offset between the feature and segment ID's
+        df['SID'] = df['SID'] - 1
 
         # Change the segment id column name to feature id
         df.rename(columns={'SID': 'FID'}, inplace=True)

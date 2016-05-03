@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import luigi
+import argparse
 
 from datetime import date
 import os
@@ -19,7 +20,6 @@ from eotools.vector import spatial_intersection
 import pdb
 
 CONFIG = luigi.configuration.get_config()
-CONFIG.add_config_path(pjoin(dirname(__file__), 'config.cfg'))
 
 PBS_DSH = (
 """#!/bin/bash
@@ -34,8 +34,8 @@ PBS_DSH = (
 NNODES={nnodes}
 
 for i in $(seq 1 $NNODES); do
-   pbsdsh -n $((16 *$i)) -- bash -l -c "{modules} PBS_NNODES=$NNODES PBS_VNODENUM=$i python {pyfile} \
-   --tile $[$i - 1]" &
+   pbsdsh -n $((16 *$i)) -- bash -l -c "{modules} PBS_NNODES=$NNODES PBS_VNODENUM=$i {pyfile} \
+   --tile $[$i - 1] --cfg {cfgfile}" &
 done;
 wait
 """)
@@ -52,9 +52,8 @@ def get_cells():
     dcube_vector_fname = CONFIG.get('internals', 'cell_grid')
     out_fname = pjoin(out_dir, CONFIG.get('outputs', 'cells_list'))
 
-    fids = spatial_intersection(vector_fname, dcube_vector_fname,
+    fids = spatial_intersection(dcube_vector_fname, vector_fname,
                                 envelope=envelope)
-    print fids
 
     vec_ds = ogr.Open(dcube_vector_fname)
     layer = vec_ds.GetLayer(0)
@@ -118,6 +117,13 @@ def create_tiles(array_size, tile_size=25):
 
 
 if __name__ == '__main__':
+    desc = "Initialises the datacube query and saves the output."
+    parser = argparse.ArgumentParser(description=desc)
+    hlp = "The config file used to drive the workflow."
+    parser.add_argument('--cfg', required=True, help=hlp)
+    args = parser.parse_args()
+    CONFIG.add_config_path(args.cfg)
+
     # Create the output directory
     out_dir = CONFIG.get('work', 'output_directory')
     if not exists(out_dir):
@@ -142,7 +148,7 @@ if __name__ == '__main__':
 
     # Define the fractional cover dataset
     # TODO have this defined through the config.cfg
-    ds_types = [DatasetType.ARG25, DatasetType.PQ25]
+    ds_types = [DatasetType.FC25, DatasetType.PQ25]
 
     # Get the satellites we wish to query
     satellites = CONFIG.get('work', 'satellites')
@@ -188,10 +194,12 @@ if __name__ == '__main__':
     email = CONFIG.get('pbs', 'email')
     # py_file = pjoin(dirname(abspath(__file__)), 'classifier_workflow.py')
     py_file = CONFIG.get('work', 'query_file')
+    cfg_file = args.cfg
     pbs_job = PBS_DSH.format(project=project, queue=queue,
                              walltime=walltime, ncpus=ncpus, mem=mem,
                              email=email, nnodes=nnodes,
-                             modules=modules, pyfile=py_file)
+                             modules=modules, pyfile=py_file,
+                             cfgfile=cfg_file)
 
     # Out put the shell script to disk
     pbs_fname = pjoin(out_dir, CONFIG.get('outputs', 'pbs_filename'))
